@@ -1,4 +1,4 @@
-package com.peter.mypusheditvideo;
+package com.peter.mypusheditvideo.activity;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -14,9 +14,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
-import android.widget.TextView;
+import android.view.View;
 
-//import com.peter.mypusheditvideo.databinding.ActivityMainBinding;
+import com.peter.mypusheditvideo.R;
+
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG="my_tag_MainActivity";
@@ -27,23 +28,14 @@ public class MainActivity extends AppCompatActivity {
             Manifest.permission.WRITE_EXTERNAL_STORAGE
     };
 
-//    private ActivityMainBinding binding;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
 
-
         checkPermission();
 
-/*        binding = ActivityMainBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
-
-        // Example of a call to a native method
-        TextView tv = binding.sampleText;
-        tv.setText("stringFromJNI()");*/
     }
     private void checkPermission() {
         Log.d(TAG, "checkPermission +");
@@ -81,5 +73,10 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == 200 && resultCode == RESULT_OK) {
             checkPermission();
         }
+    }
+
+    public void cameraPreview(View view) {
+        Intent intent = new Intent(this, CameraActivity.class);
+        startActivity(intent);
     }
 }
