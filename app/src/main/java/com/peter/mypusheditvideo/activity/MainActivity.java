@@ -84,4 +84,12 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, RecordVideoActivity.class);
         startActivity(intent);
     }
+
+    public void yuvPlayer(View view) {
+        Intent intent = new Intent(this, YuvActivity.class);
+        startActivity(intent);
+    }
+
+    public void imgMakeVideo(View view) {
+    }
 }
