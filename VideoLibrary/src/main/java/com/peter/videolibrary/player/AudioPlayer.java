@@ -414,6 +414,16 @@ public class AudioPlayer {
         return rate;
     }
 
+
+    public void startRecordAudio(String path) {
+        nativeStartRecordPcm2(path);
+    }
+
+    public void stopRecordAudio() {
+        nativeStopRecordPcm2();
+    }
+
+
     /**
      * c++回调java的方法
      */
@@ -577,4 +587,7 @@ public class AudioPlayer {
     private native void nativeStartStopRecord(boolean bStartRecord);
 
     private native boolean nativeCutAudioPlay(double startTime, double endTime, boolean isShowPcm);
+
+    private native void nativeStartRecordPcm2(String path);
+    private native void nativeStopRecordPcm2();
 }

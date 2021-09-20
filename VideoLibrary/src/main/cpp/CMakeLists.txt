@@ -20,6 +20,8 @@ add_library( # Sets the name of the library.
         bean/PcmBean.cpp
         queue/BufferQueue.cpp
 
+        audiorecord/RecordBuffer.cpp
+
         soundtouch/SoundTouch/AAFilter.cpp
         soundtouch/SoundTouch/FIFOSampleBuffer.cpp
         soundtouch/SoundTouch/FIRFilter.cpp

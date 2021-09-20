@@ -30,6 +30,8 @@
         <activity android:name=".activity.YuvActivity"/>
         <activity android:name=".activity.ImageVideoActivity"/>
         <activity android:name=".activity.AudioRecordActivity"/>
+        <activity android:name=".activity.Record2Activity"/>
+        <activity android:name=".activity.RecordCameraActivity"/>
     </application>
 
 

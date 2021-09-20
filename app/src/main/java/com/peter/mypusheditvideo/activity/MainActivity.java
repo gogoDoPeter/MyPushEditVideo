@@ -102,8 +102,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void recordPcm2(View view) {
+        Intent intent = new Intent(this, Record2Activity.class);
+        startActivity(intent);
     }
 
     public void recordCamera(View view) {
+        Intent intent = new Intent(this, RecordCameraActivity.class);
+        startActivity(intent);
     }
 }
