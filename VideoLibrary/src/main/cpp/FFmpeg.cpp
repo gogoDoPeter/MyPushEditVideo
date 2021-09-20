@@ -413,12 +413,14 @@ void FFmpeg::seek(int64_t seconds)
     {
         if (audio != NULL)
         {
+            LOGD("seek startTime:%ld in seconds", seconds);
             playStatus->seekStatus = true;
             audio->queue->clearAvpacket();
             audio->clock = 0;
             audio->last_time = 0;
             pthread_mutex_lock(&seek_mutex);
             int64_t realTime = seconds * AV_TIME_BASE;
+            LOGD("realTime:%ld in realTime",realTime);
             //TODO 由于一个AVPacket里面有多个AVFrame，当seek时，FFmpeg解码器中还残留
             //     AVFrame，所以会导致seek后，不能立即播放当前音乐,需要做下 avcodec_flush_buffers 来清除FFmpeg解码器中残留的AVFrame
             avcodec_flush_buffers(audio->avCodecContext);

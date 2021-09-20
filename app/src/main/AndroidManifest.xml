@@ -27,7 +27,7 @@
             android:theme="@style/AppThemeFullScreen"/>
         <activity android:name=".activity.RecordVideoActivity"/>
         <activity android:name=".activity.YuvActivity"/>
-
+        <activity android:name=".activity.ImageVideoActivity"/>
     </application>
 
 

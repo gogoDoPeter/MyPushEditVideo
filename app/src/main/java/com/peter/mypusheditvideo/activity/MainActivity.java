@@ -91,5 +91,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void imgMakeVideo(View view) {
+        Intent intent = new Intent(this, ImageVideoActivity.class);
+        startActivity(intent);
     }
 }

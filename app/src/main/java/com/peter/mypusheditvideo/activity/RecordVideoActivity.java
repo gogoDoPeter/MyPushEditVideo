@@ -42,6 +42,7 @@ public class RecordVideoActivity extends AppCompatActivity {
                 audioPlayer.cutAudioPlayer(39, 50, true);//ShowPcm表示是否把裁剪的pcm数据回调给App
             }
         });
+
         audioPlayer.setOnCompleteListener(new MyOnCompleteListener() {
             @Override
             public void onComplete() {
@@ -58,7 +59,6 @@ public class RecordVideoActivity extends AppCompatActivity {
                 }
             }
         });
-
 
         audioPlayer.setOnCutPcmDataListener(new OnCutPcmDataListener() {
             @Override
