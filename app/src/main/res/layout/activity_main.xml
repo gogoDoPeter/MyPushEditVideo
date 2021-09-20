@@ -28,4 +28,32 @@
         android:text="图片生成视频"
         android:onClick="imgMakeVideo"/>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="10dp">
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="AudioRecord2Pcm"
+            android:textAllCaps="false"
+            android:onClick="recordRcm1"/>
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="OpenSLES2Pcm"
+            android:textAllCaps="false"
+            android:onClick="recordPcm2"/>
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="recordCamera"
+            android:textAllCaps="false"
+            android:onClick="recordCamera"/>
+    </LinearLayout>
+
 </LinearLayout>

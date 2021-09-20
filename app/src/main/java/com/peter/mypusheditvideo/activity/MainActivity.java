@@ -18,14 +18,14 @@ import android.view.View;
 
 import com.peter.mypusheditvideo.R;
 
-
 public class MainActivity extends AppCompatActivity {
     private static final String TAG="my_tag_MainActivity";
     private static final String[] permissions = new String[]{
             Manifest.permission.CAMERA,
             Manifest.permission.INTERNET,
             Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.RECORD_AUDIO
     };
 
     @Override
@@ -37,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
         checkPermission();
 
     }
+
     private void checkPermission() {
         Log.d(TAG, "checkPermission +");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -93,5 +94,16 @@ public class MainActivity extends AppCompatActivity {
     public void imgMakeVideo(View view) {
         Intent intent = new Intent(this, ImageVideoActivity.class);
         startActivity(intent);
+    }
+
+    public void recordRcm1(View view) {
+        Intent intent = new Intent(this, AudioRecordActivity.class);
+        startActivity(intent);
+    }
+
+    public void recordPcm2(View view) {
+    }
+
+    public void recordCamera(View view) {
     }
 }
