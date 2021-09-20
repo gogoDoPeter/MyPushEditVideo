@@ -2,10 +2,12 @@ package com.peter.mypusheditvideo.yuv;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.util.Log;
 
 import com.peter.mypusheditvideo.egl.MyEGLSurfaceView;
 
 public class YuvView extends MyEGLSurfaceView {
+    private static final String TAG="my_tag_YuvView";
     private YuvRender yuvRender;
 
     public YuvView(Context context) {

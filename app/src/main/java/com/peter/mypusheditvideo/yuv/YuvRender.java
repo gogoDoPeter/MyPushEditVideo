@@ -59,6 +59,7 @@ public class YuvRender implements MyEGLSurfaceView.MyGLRender {
     private int u_matrix;
 
     public YuvRender(Context context) {
+        Log.d(TAG,"YuvRender constructor, dataWidth="+yuvWidth+", dataHeight="+yuvHeight);
         this.context = context;
         screenRender = new ScreenRender(context);
         vertexBuffer = ByteBuffer.allocateDirect(vertexData.length * 4)
@@ -95,13 +96,14 @@ public class YuvRender implements MyEGLSurfaceView.MyGLRender {
             } else{//图片高度缩放
                 float r = height / (1.0f * width / yuvWidth * yuvHeight);
 //                orthoM(-1, 1, -r, r, matrix);
-                Matrix.orthoM(matrix,0,-1, 1, -r, r, -1,1);//TODO offset 0, near -1, far 1
+                Matrix.orthoM(matrix,0,-1, 1, -r, r, -1,1);//TODO offset 0, default near -1, far 1
             }
         }
     }
 
     @Override
     public void onSurfaceCreated() {
+        Log.d(TAG,"onSurfaceCreated +, dataWidth="+yuvWidth+", dataHeight="+yuvHeight);
         screenRender.onCreate();
         String vertexShader = ShaderUtil.getRawResource(context, R.raw.vertex_shader_yuv);
         String fragmentShader = ShaderUtil.getRawResource(context, R.raw.fragment_shader_yuv);
@@ -141,7 +143,6 @@ public class YuvRender implements MyEGLSurfaceView.MyGLRender {
 
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_REPEAT);
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_REPEAT);
-
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
 
@@ -226,6 +227,7 @@ public class YuvRender implements MyEGLSurfaceView.MyGLRender {
     }
 
     public void setFrameData(int width, int height, byte[] by, byte[] bu, byte[] bv) {
+//        Log.d(TAG,"setFrameData +, dataWidth="+width+", dataHeight="+height);
         this.yuvWidth=width;
         this.yuvHeight=height;
 

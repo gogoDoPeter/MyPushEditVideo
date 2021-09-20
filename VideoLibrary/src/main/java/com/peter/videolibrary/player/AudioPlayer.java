@@ -65,8 +65,25 @@ public class AudioPlayer {
     private double recordTime = 0;
     private int audioSamplerate = 0;
 
+    public static AudioPlayer instance = null;
+
     public AudioPlayer() {
         Log.d(TAG, "AudioPlayer constructor");
+    }
+
+    public static synchronized AudioPlayer getInstance()
+    {
+        if(instance == null)
+        {
+            synchronized (AudioPlayer.class)
+            {
+                if(instance == null)
+                {
+                    instance = new AudioPlayer();
+                }
+            }
+        }
+        return instance;
     }
 
     /**
@@ -520,7 +537,7 @@ public class AudioPlayer {
 
     private void onCallCutPcmData(byte[] buffer, int size) {
         if(onCutPcmDataListener != null){
-            onCutPcmDataListener.onCutPcmData(buffer,size);
+            onCutPcmDataListener.onPcmCutData(buffer,size);
         }
     }
 
@@ -529,7 +546,7 @@ public class AudioPlayer {
         if(onCutPcmDataListener != null)
         {
             Log.d(TAG,"onCallPcmRatesample channels="+channels);
-            onCutPcmDataListener.onPcmRateSample(sampleRate, 16, channels);
+            onCutPcmDataListener.onPcmDataInfo(sampleRate, 16, channels);
         }
     }
 

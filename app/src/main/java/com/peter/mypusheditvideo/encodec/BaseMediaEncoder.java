@@ -43,6 +43,20 @@ public abstract class BaseMediaEncoder {
 
     private OnMediaInfoListener onMediaInfoListener;
 
+    //Audio mediacodec add
+    private MediaCodec audioEncodec;
+    private MediaFormat audioFormat;
+    private MediaCodec.BufferInfo audioBufferinfo;
+    private long audioPts = 0;
+    private int sampleRate;
+
+    private boolean encodecStart;
+    private boolean audioExit;
+    private boolean videoExit;
+
+    private AudioEncodecThread audioEncodecThread;
+
+
     public BaseMediaEncoder(Context context) {
     }
 
@@ -62,7 +76,8 @@ public abstract class BaseMediaEncoder {
     }
 
     public void initEncodec(EGLContext eglContext, String savePath, String mimeType, int width, int height) {
-        Log.d(TAG, "initEncodec +, width=" + width + ", height=" + height);
+        Log.d(TAG, "initEncodec1 +, width=" + width + ", height=" + height+
+                ", savePath:"+savePath);
         this.width = width;
         this.height = height;
         this.eglContext = eglContext;
@@ -70,36 +85,70 @@ public abstract class BaseMediaEncoder {
         Log.d(TAG, "initEncodec -");
     }
 
+    public void initEncodec(EGLContext eglContext, String savePath, int width, int height, int sampleRate, int channelCount)
+    {
+        Log.d(TAG, "initEncodec2 +, width=" + width + ", height=" + height +
+                ", savePath:"+savePath);
+        this.width = width;
+        this.height = height;
+        this.eglContext = eglContext;
+        initMediaEncodec(savePath, width, height, sampleRate, channelCount);
+    }
+
     public void startRecord() {
         Log.d(TAG, "startRecord +");
         if (surface != null && eglContext != null) {
             Log.d(TAG, "startRecord new eglMediaThread videoEncodecThread and start");
+            audioPts = 0;
+            audioExit = false;
+            videoExit = false;
+            encodecStart = false;
+
 
             eglMediaThread = new EGLMediaThread(new WeakReference<BaseMediaEncoder>(this));
             videoEncodecThread = new VideoEncodecThread(new WeakReference<BaseMediaEncoder>(this));
+            audioEncodecThread = new AudioEncodecThread(new WeakReference<BaseMediaEncoder>(this));
             eglMediaThread.isCreate = true;
             eglMediaThread.isChange = true;
             eglMediaThread.start();
             videoEncodecThread.start();
+            audioEncodecThread.start();
         }
         Log.d(TAG, "startRecord -");
     }
 
     public void stopRecord() {
         Log.d(TAG, "stopRecord +");
-        if (eglMediaThread != null && videoEncodecThread != null) {
+        if (eglMediaThread != null && videoEncodecThread != null && audioEncodecThread != null) {
             videoEncodecThread.exit();
+            audioEncodecThread.exit();
             eglMediaThread.onDestory();
             videoEncodecThread = null;
+            audioEncodecThread=null;
             eglMediaThread = null;
         }
         Log.d(TAG, "stopRecord -");
     }
 
     private void initMediaEncodec(String savePath, String mimeType, int width, int height) {
+        Log.d(TAG, "initMediaEncodec1 +, width=" + width + ", height=" + height +
+                ", savePath:"+savePath+", mimeType="+mimeType);
         try {
             mediaMuxer = new MediaMuxer(savePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
             initVideoEncodec(mimeType, width, height);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void initMediaEncodec(String savePath, int width, int height, int sampleRate, int channelCount)
+    {
+        Log.d(TAG, "initMediaEncodec2 +, width=" + width + ", height=" + height +
+                ", savePath:"+savePath+", sampleRate="+sampleRate+", channelCount="+channelCount);
+        try {
+            mediaMuxer = new MediaMuxer(savePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+            initVideoEncodec(MediaFormat.MIMETYPE_VIDEO_AVC, width, height);
+            initAudioEncodec(MediaFormat.MIMETYPE_AUDIO_AAC, sampleRate, channelCount);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -127,6 +176,43 @@ public abstract class BaseMediaEncoder {
             videoBufferinfo = null;
         }
         Log.d(TAG, "initVideoEncodec -");
+    }
+
+    private void initAudioEncodec(String mimeType, int sampleRate, int channelCount)
+    {
+        try {
+            this.sampleRate = sampleRate;
+            audioBufferinfo = new MediaCodec.BufferInfo();
+            audioFormat = MediaFormat.createAudioFormat(mimeType, sampleRate, channelCount);
+            audioFormat.setInteger(MediaFormat.KEY_BIT_RATE, 96000);
+            audioFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
+            audioFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 4096);
+
+            audioEncodec = MediaCodec.createEncoderByType(mimeType);
+            audioEncodec.configure(audioFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            audioBufferinfo = null;
+            audioFormat = null;
+            audioEncodec = null;
+        }
+    }
+
+    public void putPCMData(byte[] buffer, int size)
+    {
+        if(audioEncodecThread != null && !audioEncodecThread.isExit && buffer != null && size > 0)
+        {
+            int inputBufferindex = audioEncodec.dequeueInputBuffer(0);
+            if(inputBufferindex >= 0)
+            {
+                ByteBuffer byteBuffer = audioEncodec.getInputBuffers()[inputBufferindex];
+                byteBuffer.clear();
+                byteBuffer.put(buffer);
+                long pts = getAudioPts(size, sampleRate);
+                audioEncodec.queueInputBuffer(inputBufferindex, 0, size, pts, 0);
+            }
+        }
     }
 
     static class EGLMediaThread extends Thread {
@@ -247,8 +333,9 @@ public abstract class BaseMediaEncoder {
         private MediaCodec.BufferInfo videoBufferinfo;
         private MediaMuxer mediaMuxer;
 
-        private int videoTrackIndex;
+        private int videoTrackIndex = -1;
         private long pts;
+
 
         public VideoEncodecThread(WeakReference<BaseMediaEncoder> encoder) {
             Log.d(TAG, "VideoEncodecThread constructor");
@@ -257,6 +344,8 @@ public abstract class BaseMediaEncoder {
             videoFormat = encoder.get().videoFormat;
             videoBufferinfo = encoder.get().videoBufferinfo;
             mediaMuxer = encoder.get().mediaMuxer;
+
+            videoTrackIndex = -1;
         }
 
         @Override
@@ -273,9 +362,13 @@ public abstract class BaseMediaEncoder {
                     videoEncodec.release();
                     videoEncodec = null;
 
-                    mediaMuxer.stop();
-                    mediaMuxer.release();
-                    mediaMuxer = null;
+                    encoder.get().videoExit = true;
+                    if(encoder.get().audioExit)//只有audio也完成了，再释放mediaMuxer
+                    {
+                        mediaMuxer.stop();
+                        mediaMuxer.release();
+                        mediaMuxer = null;
+                    }
                     Log.d("my_tag", "VideoEncodecThread run 录制完成");
                     break;
                 }
@@ -284,29 +377,38 @@ public abstract class BaseMediaEncoder {
 //                Log.d(TAG, "VideoEncodecThread run, first outputBufferIndex:"+outputBufferIndex);
                 if (outputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                     videoTrackIndex = mediaMuxer.addTrack(videoEncodec.getOutputFormat());
-                    Log.d(TAG, "VideoEncodecThread run mediaMuxer.start");
-                    mediaMuxer.start();
+                    //TODO 只有audioTraceIndex 和 videoTrackIndex 都有效，才能开始mediaMuxer
+                    if(encoder.get().audioEncodecThread.audioTrackIndex != -1)
+                    {
+                        Log.d(TAG, "VideoEncodecThread run mediaMuxer.start");
+                        mediaMuxer.start();
+                        encoder.get().encodecStart = true;
+                    }
+
                 } else {
                     while (outputBufferIndex >= 0) {
 //                        int tempNewLimit=videoBufferinfo.offset + videoBufferinfo.size;
 //                        Log.d(TAG, "VideoEncodecThread run, get outputBuffer, outputBufIdx:"+outputBufferIndex+
 //                                ", offset:"+videoBufferinfo.offset+", limit total size:"+tempNewLimit);
 
-                        ByteBuffer outputBuffer = videoEncodec.getOutputBuffers()[outputBufferIndex];
-                        outputBuffer.position(videoBufferinfo.offset);
-                        outputBuffer.limit(videoBufferinfo.offset + videoBufferinfo.size);
+                        if(encoder.get().encodecStart)
+                        {
+                            ByteBuffer outputBuffer = videoEncodec.getOutputBuffers()[outputBufferIndex];
+                            outputBuffer.position(videoBufferinfo.offset);
+                            outputBuffer.limit(videoBufferinfo.offset + videoBufferinfo.size);
 
-                        //
-                        if (pts == 0) {
-                            pts = videoBufferinfo.presentationTimeUs;
-                        }
+                            //
+                            if (pts == 0) {
+                                pts = videoBufferinfo.presentationTimeUs;
+                            }
 //                        Log.d(TAG, "VideoEncodecThread run set videoBufferinfo.presentationTimeUs, pts:" + pts);
-                        videoBufferinfo.presentationTimeUs = videoBufferinfo.presentationTimeUs - pts;
+                            videoBufferinfo.presentationTimeUs = videoBufferinfo.presentationTimeUs - pts;
 //                        Log.d(TAG, "VideoEncodecThread run mediaMuxer.writeSampleData, videoTrackIndex:" + videoTrackIndex +
 //                                ", videoBufferinfo.presentationTimeUs:" + videoBufferinfo.presentationTimeUs);
-                        mediaMuxer.writeSampleData(videoTrackIndex, outputBuffer, videoBufferinfo);
-                        if (encoder.get().onMediaInfoListener != null) {
-                            encoder.get().onMediaInfoListener.onMediaTime((int) (videoBufferinfo.presentationTimeUs / 1000000));
+                            mediaMuxer.writeSampleData(videoTrackIndex, outputBuffer, videoBufferinfo);
+                            if (encoder.get().onMediaInfoListener != null) {
+                                encoder.get().onMediaInfoListener.onMediaTime((int) (videoBufferinfo.presentationTimeUs / 1000000));
+                            }
                         }
 
                         videoEncodec.releaseOutputBuffer(outputBufferIndex, false);
@@ -323,6 +425,105 @@ public abstract class BaseMediaEncoder {
         }
 
     }
+
+
+    static class AudioEncodecThread extends Thread
+    {
+
+        private WeakReference<BaseMediaEncoder> encoder;
+        private boolean isExit;
+
+        private MediaCodec audioEncodec;
+        private MediaCodec.BufferInfo bufferInfo;
+        private MediaMuxer mediaMuxer;
+
+        private int audioTrackIndex = -1;
+        long pts;
+
+
+        public AudioEncodecThread(WeakReference<BaseMediaEncoder> encoder) {
+            this.encoder = encoder;
+            audioEncodec = encoder.get().audioEncodec;
+            bufferInfo = encoder.get().audioBufferinfo;
+            mediaMuxer = encoder.get().mediaMuxer;
+            audioTrackIndex = -1;
+        }
+
+        @Override
+        public void run() {
+            super.run();
+            pts = 0;
+            isExit = false;
+            audioEncodec.start();
+            while(true)
+            {
+                if(isExit)
+                {
+                    //
+
+                    audioEncodec.stop();
+                    audioEncodec.release();
+                    audioEncodec = null;
+                    encoder.get().audioExit = true;
+                    if(encoder.get().videoExit)
+                    {
+                        mediaMuxer.stop();
+                        mediaMuxer.release();
+                        mediaMuxer = null;
+                    }
+                    break;
+                }
+
+                int outputBufferIndex = audioEncodec.dequeueOutputBuffer(bufferInfo, 0);
+                if(outputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED)
+                {
+                    if(mediaMuxer != null)
+                    {
+                        audioTrackIndex = mediaMuxer.addTrack(audioEncodec.getOutputFormat());
+                        if(encoder.get().videoEncodecThread.videoTrackIndex != -1)
+                        {
+                            mediaMuxer.start();
+                            encoder.get().encodecStart = true;
+                        }
+                    }
+                }
+                else
+                {
+                    while(outputBufferIndex >= 0)
+                    {
+                        if(encoder.get().encodecStart)
+                        {
+
+                            ByteBuffer outputBuffer = audioEncodec.getOutputBuffers()[outputBufferIndex];
+                            outputBuffer.position(bufferInfo.offset);
+                            outputBuffer.limit(bufferInfo.offset + bufferInfo.size);
+                            if(pts == 0)
+                            {
+                                pts = bufferInfo.presentationTimeUs;
+                            }
+                            bufferInfo.presentationTimeUs = bufferInfo.presentationTimeUs - pts;
+                            mediaMuxer.writeSampleData(audioTrackIndex, outputBuffer, bufferInfo);
+                        }
+                        audioEncodec.releaseOutputBuffer(outputBufferIndex, false);
+                        outputBufferIndex = audioEncodec.dequeueOutputBuffer(bufferInfo, 0);
+                    }
+                }
+
+            }
+
+        }
+        public void exit()
+        {
+            isExit = true;
+        }
+    }
+
+    private long getAudioPts(int size, int sampleRate)
+    {
+        audioPts += (long)(1.0 * size / (sampleRate * 2 * 2) * 1000000.0);
+        return audioPts;
+    }
+
 
     public interface OnMediaInfoListener {
         void onMediaTime(int times);
